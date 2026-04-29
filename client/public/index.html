@@ -71,6 +71,55 @@
             height: 100vh;
             background: #2d4c1e; /* Fű szín */
         }
+
+
+    </style>
+
+    <style>
+        .lobby-paper {
+            background: #d9b382 url('https://transparenttextures.com');
+            border: 8px double #4a3b2b;
+            padding: 20px;
+            width: 80%;
+            max-width: 900px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+
+        .lobby-main {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .player-list, .game-settings {
+            background: rgba(0,0,0,0.1);
+            border: 2px solid #8b5a2b;
+            padding: 10px;
+        }
+
+        .player-list { flex: 2; }
+        .game-settings { flex: 1; display: flex; flex-direction: column; }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            border-bottom: 2px solid #8b5a2b;
+            margin-bottom: 10px;
+            color: #4a3b2b;
+        }
+
+        input, select {
+            background: #f1d392;
+            border: 1px solid #4a3b2b;
+            padding: 5px;
+            font-family: 'Georgia', serif;
+        }
+
+        .menu-btn.small { width: auto; padding: 10px 30px; font-size: 0.9rem; }
+        .menu-btn.ready { background: #2d4c1e; color: #fff; border-color: #f1d392; }
+
+
     </style>
 </head>
 <body>
@@ -87,29 +136,177 @@
 
     <!-- Játéktér -->
     <canvas id="game-canvas"></canvas>
+<!-- Lobby Képernyő -->
+<div id="lobby-container" style="display: none;">
+    <div class="lobby-paper">
+        <div class="lobby-header">
+            <h2>Multiplayer Game Lobby</h2>
+        </div>
+        
+        <div class="lobby-main">
+            <!-- Játékos lista (Bal oldal) -->
+            <div class="player-list">
+                <div class="list-header"><span>Player</span><span>Civilization</span><span>Team</span></div>
+                <div class="player-row active">
+                    <input type="text" id="player-name" value="Player 1" onchange="updateLobby()">
+                    <select id="civ-select" onchange="updateLobby()">
+                        <option>Aztecs</option>
+                        <option>Britons</option>
+                        <option>Huns</option>
+                    </select>
+                    <select><option>1</option><option>2</option></select>
+                </div>
+                <!-- Ide jönnek majd a többiek a LAN-ról -->
+                <div id="other-players"></div>
+            </div>
+
+            <!-- Jobb oldal: Beállítások ÉS Pálya előnézet -->
+            <div class="side-panel">
+                <!-- A Pálya Widget -->
+                <div class="map-preview-box">
+                    <h3 style="color: #f1d392; margin: 0 0 10px 0; font-size: 0.9rem;">Map Preview</h3>
+                    <canvas id="map-preview" width="200" height="200"></canvas>
+                    
+                    <div class="seed-input-container" style="margin-top: 10px;">
+                        <label style="color: #f1d392; display: block; font-size: 0.8rem;">World Seed:</label>
+                        <input type="number" id="map-seed-input" value="12345" 
+                               oninput="handleSeedChange()" 
+                               style="width: 100%; text-align: center; box-sizing: border-box;">
+                    </div>
+                </div>
+                
+                <div class="game-settings">
+                    <button class="menu-btn small" onclick="generateRandomSeed()">Randomize</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="lobby-footer">
+            <button class="menu-btn small" onclick="backToMain()">Leave</button>
+            <button class="menu-btn ready" onclick="launchGame()">I'm Ready!</button>
+        </div>
+    </div>
+</div>
 
     <script>
-        function startGame() {
-            // Menü elrejtése
-            document.getElementById('menu-container').style.display = 'none';
-            
-            // Játéktér megjelenítése
-            const canvas = document.getElementById('game-canvas');
-            canvas.style.display = 'block';
-            
-            initLocalServer();
-        }
 
-        function initLocalServer() {
-            console.log("Helyi szerver inicializálása...");
-            // Itt indulna el a játéklogika (személyek, épületek betöltése)
-            const ctx = document.getElementById('game-canvas').getContext('2d');
-            
-            // Egy egyszerű teszt rajz a "szerver" indulásakor
-            ctx.fillStyle = "white";
-            ctx.font = "20px Arial";
-            ctx.fillText("Helyi szerver fut... A világ generálása kész.", 50, 50);
+    const TERRAIN = {
+        DEEP_WATER: ['#002147', '#002b5c', '#003366'], // Mélyvíz árnyalatok
+        WATER:      ['#004080', '#0059b3', '#0066cc'], // Sekély víz
+        SAND:       ['#c2b280', '#d2b48c', '#e3c99e'], // Homok
+        GRASS:      ['#2d4c1e', '#345e22', '#3e6b27'], // Sötét/világos fű
+        FOREST:     ['#13260a', '#1a2b11', '#243b18']  // Erdő sűrűje
+    };
+    function startGame() {
+        // Főmenü elrejtése, Lobby megjelenítése
+        document.getElementById('menu-container').style.display = 'none';
+        document.getElementById('lobby-container').style.display = 'flex';
+        document.getElementById('lobby-container').style.justifyContent = 'center';
+        document.getElementById('lobby-container').style.alignItems = 'center';
+
+        // 2. Azonnali generálás az alapértelmezett seederrel
+        // Megvárjuk a következő "tick"-et, hogy a böngésző biztosan kirajzolja a Lobby-t
+        setTimeout(() => {
+            const initialSeed = document.getElementById('map-seed-input').value || 12345;
+            drawPreview(parseInt(initialSeed), 100);
+        }, 10);
+    }
+
+    function updateLobby() {
+        const name = document.getElementById('player-name').value;
+        const civ = document.getElementById('civ-select').value;
+        
+        // Itt küldjük el a LAN-on a többieknek
+        if(typeof socket !== 'undefined') {
+            socket.emit('player-update', { name, civ });
         }
+    }
+
+    function launchGame() {
+        // Itt indulna el a tényleges generált pálya
+        document.getElementById('lobby-container').style.display = 'none';
+        const canvas = document.getElementById('game-canvas');
+        canvas.style.display = 'block';
+        console.log("A csata elkezdődött!");
+    }
+
+    function initLocalServer() {
+        console.log("Helyi szerver inicializálása...");
+        // Itt indulna el a játéklogika (személyek, épületek betöltése)
+        const ctx = document.getElementById('game-canvas').getContext('2d');
+        
+        // Egy egyszerű teszt rajz a "szerver" indulásakor
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText("Helyi szerver fut... A világ generálása kész.", 50, 50);
+    }
+
+    function seededRandom(seed) {
+    var x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+    function handleSeedChange() {
+        const seed = document.getElementById('map-seed-input').value || 0;
+        drawPreview(parseInt(seed), 100); // 100x100-as mintát generálunk az előnézethez
+    }
+        // Egyszerű seedelhető véletlenszám generátor
+    function generateRandomSeed() {
+        const newSeed = Math.floor(Math.random() * 1000000);
+        document.getElementById('map-seed-input').value = newSeed;
+        handleSeedChange();
+    }
+
+    function generateMap(width, height, seed) {
+        let world = [];
+        let s = seed;
+        
+        for (let y = 0; y < height; y++) {
+            world[y] = [];
+            for (let x = 0; x < width; x++) {
+                // 1. Alap zaj (seeded)
+                let val = seededRandom(s++);
+                
+                // 2. Sziget formálás (Distance from center)
+                // Kiszámoljuk a távolságot a középponttól (0-1 között)
+                let dx = (x / width) - 0.5;
+                let dy = (y / height) - 0.5;
+                let dist = Math.sqrt(dx*dx + dy*dy) * 2; // 0 középen, 1+ a széleken
+                
+                // Minél messzebb van a közepétől, annál nagyobb eséllyel lesz víz
+                let finalVal = val - (dist * 0.6); 
+
+                let type;
+                if (finalVal < 0.1) type = 'DEEP_WATER';
+                else if (finalVal < 0.25) type = 'WATER';
+                else if (finalVal < 0.35) type = 'SAND';
+                else if (finalVal < 0.75) type = 'GRASS';
+                else type = 'FOREST';
+
+                let variant = TERRAIN[type];
+                let color = variant[Math.floor(seededRandom(s++) * variant.length)];
+
+                world[y][x] = { type, color };
+            }
+        }
+        return world;
+    }
+    function drawPreview(seed, size) {
+        const canvas = document.getElementById('map-preview');
+        const ctx = canvas.getContext('2d');
+        const mapData = generateMap(size, size, seed);
+        
+        const pixelSize = canvas.width / size;
+
+        // Canvas tisztítása
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        mapData.forEach((row, y) => {
+            row.forEach((tile, x) => {
+                ctx.fillStyle = tile.color;
+                ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+            });
+        });
+    }
     </script>
 </body>
 </html>
