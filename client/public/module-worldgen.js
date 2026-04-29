@@ -16,6 +16,7 @@ function getElevation(x, y, s) {
     return v / 1.75;
 }
 
+
 const TERRAIN_COLORS = {
     WATER: {r: 0, g: 61, b: 122}, SAND: {r: 212, g: 184, b: 149},
     GRASS: {r: 59, g: 99, b: 38}, FOREST: {r: 30, g: 61, b: 12}, MOUNTAIN: {r: 85, g: 82, b: 77}

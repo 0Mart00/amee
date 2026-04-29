@@ -61,6 +61,7 @@ function launchGame() {
 }
 // Egér és Grid szinkronizáció (Megszünteti az elcsúszást)
 window.addEventListener('mousemove', (e) => {
+    // Kamera mozgatása (jobb egérgombbal, mint az RTS-ekben)
     if (camera.isDragging) {
         camera.x -= (e.clientX - camera.lastX);
         camera.y -= (e.clientY - camera.lastY);
@@ -68,15 +69,17 @@ window.addEventListener('mousemove', (e) => {
         camera.lastY = e.clientY;
     }
     
-    // Precíz izometrikus visszafejtés
-    const isoX = e.clientX + camera.x - (TILE_W / 2);
-    const isoY = e.clientY + camera.y;
+    // Egér pozíció átszámítása világ-koordinátákra (AoE2 inverz mátrix)
+    const worldX = e.clientX + camera.x;
+    const worldY = e.clientY + camera.y;
     
-    const a = isoX / (TILE_W / 2);
-    const b = isoY / (TILE_H / 2);
+    // A 2:1 arányú izometrikus rács visszafejtése
+    const gridX = Math.floor((worldY / (TILE_H)) + (worldX / (TILE_W)));
+    const gridY = Math.floor((worldY / (TILE_H)) - (worldX / (TILE_W)));
     
-    mouseGrid.x = Math.floor((a + b) / 2);
-    mouseGrid.y = Math.floor((b - a) / 2);
+    mouseGrid.x = gridX;
+    mouseGrid.y = gridY;
     
-    document.getElementById('debug-info').innerText = `X: ${mouseGrid.x}, Y: ${mouseGrid.y}`;
+    const debug = document.getElementById('debug-info');
+    if (debug) debug.innerText = `Kordináta: ${gridX}, ${gridY}`;
 });
