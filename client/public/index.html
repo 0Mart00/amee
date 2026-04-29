@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>AoE Style Menu</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Georgia', serif;
+        }
+
+        /* Menü Háttér (Ide tehetsz egy AoE képet) */
+        #menu-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                        url('https://alphacoders.com') center/cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .menu-box {
+            background: rgba(40, 30, 20, 0.9);
+            border: 3px solid #c5a059;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            text-align: center;
+            min-width: 300px;
+        }
+
+        h1 {
+            color: #f1d392;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px #000;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #4a3b2b;
+            color: #f1d392;
+            border: 1px solid #c5a059;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .menu-btn:hover {
+            background: #c5a059;
+            color: #281e14;
+            box-shadow: 0 0 10px #f1d392;
+        }
+
+        /* Játéktér (alapértelmezettként rejtve) */
+        #game-canvas {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: #2d4c1e; /* Fű szín */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Menü -->
+    <div id="menu-container">
+        <div class="menu-box">
+            <h1>Empire Age</h1>
+            <button class="menu-btn" onclick="startGame()">Start Game</button>
+            <button class="menu-btn">Options</button>
+            <button class="menu-btn">Exit</button>
+        </div>
+    </div>
+
+    <!-- Játéktér -->
+    <canvas id="game-canvas"></canvas>
+
+    <script>
+        function startGame() {
+            // Menü elrejtése
+            document.getElementById('menu-container').style.display = 'none';
+            
+            // Játéktér megjelenítése
+            const canvas = document.getElementById('game-canvas');
+            canvas.style.display = 'block';
+            
+            initLocalServer();
+        }
+
+        function initLocalServer() {
+            console.log("Helyi szerver inicializálása...");
+            // Itt indulna el a játéklogika (személyek, épületek betöltése)
+            const ctx = document.getElementById('game-canvas').getContext('2d');
+            
+            // Egy egyszerű teszt rajz a "szerver" indulásakor
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.fillText("Helyi szerver fut... A világ generálása kész.", 50, 50);
+        }
+    </script>
+</body>
+</html>
